@@ -16,7 +16,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 import torch
 import math
 import struct
@@ -28,6 +27,7 @@ import logging
 import itertools
 from torch.nn.functional import interpolate
 from einops import rearrange
+
 
 ALWAYS_SAFE_LOAD = False
 if hasattr(torch.serialization, "add_safe_globals"):  # TODO: this was added in pytorch 2.4, the unsafe path should be removed once earlier versions are deprecated

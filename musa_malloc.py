@@ -1,9 +1,11 @@
+import torch
+import torch_musa
 import os
 import importlib.util
 from comfy.cli_args import args
 import subprocess
 
-#Can't use pytorch to get the GPU names because the cuda malloc has to be set before the first import.
+#Can't use pytorch to get the GPU names because the musa malloc has to be set before the first import.
 def get_gpu_names():
     if os.name == 'nt':
         import ctypes
@@ -50,7 +52,7 @@ blacklist = {"GeForce GTX TITAN X", "GeForce GTX 980", "GeForce GTX 970", "GeFor
                 "GeForce GTX 1650", "GeForce GTX 1630", "Tesla M4", "Tesla M6", "Tesla M10", "Tesla M40", "Tesla M60"
                 }
 
-def cuda_malloc_supported():
+def musa_malloc_supported():
     try:
         names = get_gpu_names()
     except:
@@ -60,10 +62,11 @@ def cuda_malloc_supported():
             for b in blacklist:
                 if b in x:
                     return False
+    print(f'!!!!!!!!!!!!!!#########')
     return True
 
 
-if not args.cuda_malloc:
+if not args.musa_malloc:
     try:
         version = ""
         torch_spec = importlib.util.find_spec("torch")
@@ -74,17 +77,18 @@ if not args.cuda_malloc:
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 version = module.__version__
+        print(f'!!!!!!!!!!!! version {version}')
         if int(version[0]) >= 2: #enable by default for torch version 2.0 and up
-            args.cuda_malloc = cuda_malloc_supported()
+            args.musa_malloc = musa_malloc_supported()
     except:
         pass
 
+# if args.musa_malloc and not args.disable_musa_malloc:
+#     print(f'!!!!!!!!!!!!!')
+#     env_var = os.environ.get('PYTORCH_MUSA_ALLOC_CONF', None)
+#     if env_var is None:
+#         env_var = "backend:musaMallocAsync"
+#     else:
+#         env_var += ",backend:musaMallocAsync"
 
-if args.cuda_malloc and not args.disable_cuda_malloc:
-    env_var = os.environ.get('PYTORCH_CUDA_ALLOC_CONF', None)
-    if env_var is None:
-        env_var = "backend:cudaMallocAsync"
-    else:
-        env_var += ",backend:cudaMallocAsync"
-
-    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = env_var
+#     os.environ['PYTORCH_MUSA_ALLOC_CONF'] = env_var

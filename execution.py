@@ -1,3 +1,6 @@
+import torch
+import torch_musa
+
 import sys
 import copy
 import logging
@@ -9,7 +12,6 @@ from enum import Enum
 import inspect
 from typing import List, Literal, NamedTuple, Optional
 
-import torch
 import nodes
 
 import comfy.model_management

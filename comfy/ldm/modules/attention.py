@@ -273,7 +273,7 @@ def attention_split(q, k, v, heads, mask=None, attn_precision=None, skip_reshape
 
     if mem_required > mem_free_total:
         steps = 2**(math.ceil(math.log(mem_required / mem_free_total, 2)))
-        # print(f"Expected tensor size:{tensor_size/gb:0.1f}GB, cuda free:{mem_free_cuda/gb:0.1f}GB "
+        # print(f"Expected tensor size:{tensor_size/gb:0.1f}GB, musa free:{mem_free_musa/gb:0.1f}GB "
         #      f"torch free:{mem_free_torch/gb:0.1f} total:{mem_free_total/gb:0.1f} steps:{steps}")
 
     if steps > 64:
@@ -297,7 +297,7 @@ def attention_split(q, k, v, heads, mask=None, attn_precision=None, skip_reshape
             for i in range(0, q.shape[1], slice_size):
                 end = i + slice_size
                 if upcast:
-                    with torch.autocast(enabled=False, device_type = 'cuda'):
+                    with torch.autocast(enabled=False, device_type = 'musa'):
                         s1 = einsum('b i d, b j d -> b i j', q[:, i:end].float(), k.float()) * scale
                 else:
                     s1 = einsum('b i d, b j d -> b i j', q[:, i:end], k) * scale
@@ -351,7 +351,7 @@ def attention_split(q, k, v, heads, mask=None, attn_precision=None, skip_reshape
 BROKEN_XFORMERS = False
 try:
     x_vers = xformers.__version__
-    # XFormers bug confirmed on all versions from 0.0.21 to 0.0.26 (q with bs bigger than 65535 gives CUDA error)
+    # XFormers bug confirmed on all versions from 0.0.21 to 0.0.26 (q with bs bigger than 65535 gives MUSA error)
     BROKEN_XFORMERS = x_vers.startswith("0.0.2") and not x_vers.startswith("0.0.20")
 except:
     pass

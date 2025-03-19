@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-
+import torch_musa
 import os
 import sys
 import json
@@ -18,8 +18,8 @@ import numpy as np
 import safetensors.torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "comfy"))
-
 import comfy.diffusers_load
+
 import comfy.samplers
 import comfy.sample
 import comfy.sd

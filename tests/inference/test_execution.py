@@ -138,7 +138,7 @@ class TestExecution:
         p = subprocess.Popen(pargs)
         yield
         p.kill()
-        torch.cuda.empty_cache()
+        torch.musa.empty_cache()
 
     def start_client(self, listen:str, port:int):
         # Start client
@@ -161,7 +161,7 @@ class TestExecution:
         client = self.start_client(args_pytest["listen"], args_pytest["port"])
         yield client
         del client
-        torch.cuda.empty_cache()
+        torch.musa.empty_cache()
 
     @fixture
     def client(self, shared_client, request):

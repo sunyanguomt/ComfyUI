@@ -21,6 +21,7 @@ import logging
 from enum import Enum
 from comfy.cli_args import args, PerformanceFeature
 import torch
+import torch_musa
 import sys
 import platform
 import weakref
@@ -143,7 +144,7 @@ def get_torch_device():
         elif is_mlu():
             return torch.device("mlu", torch.mlu.current_device())
         else:
-            return torch.device(torch.cuda.current_device())
+            return torch.device("musa", torch.musa.current_device())
 
 def get_total_memory(dev=None, torch_total_too=False):
     global directml_enabled
@@ -175,11 +176,11 @@ def get_total_memory(dev=None, torch_total_too=False):
             mem_total_torch = mem_reserved
             mem_total = mem_total_mlu
         else:
-            stats = torch.cuda.memory_stats(dev)
+            stats = torch.musa.memory_stats(dev)
             mem_reserved = stats['reserved_bytes.all.current']
-            _, mem_total_cuda = torch.cuda.mem_get_info(dev)
+            _, mem_total_musa = torch.musa.mem_get_info(dev)
             mem_total_torch = mem_reserved
-            mem_total = mem_total_cuda
+            mem_total = mem_total_musa
 
     if torch_total_too:
         return (mem_total, mem_total_torch)
@@ -205,7 +206,7 @@ except:
     pass
 
 try:
-    OOM_EXCEPTION = torch.cuda.OutOfMemoryError
+    OOM_EXCEPTION = torch.musa.OutOfMemoryError
 except:
     OOM_EXCEPTION = Exception
 
@@ -237,7 +238,7 @@ else:
 def is_nvidia():
     global cpu_state
     if cpu_state == CPUState.GPU:
-        if torch.version.cuda:
+        if torch.version.musa:
             return True
     return False
 
@@ -271,7 +272,7 @@ except:
 
 try:
     if is_amd():
-        arch = torch.cuda.get_device_properties(get_torch_device()).gcnArchName
+        arch = torch.musa.get_device_properties(get_torch_device()).gcnArchName
         logging.info("AMD arch: {}".format(arch))
         if args.use_split_cross_attention == False and args.use_quad_cross_attention == False:
             if torch_version_numeric[0] >= 2 and torch_version_numeric[1] >= 7:  # works on 2.6 but doesn't actually seem to improve much
@@ -281,16 +282,16 @@ except:
     pass
 
 
-if ENABLE_PYTORCH_ATTENTION:
-    torch.backends.cuda.enable_math_sdp(True)
-    torch.backends.cuda.enable_flash_sdp(True)
-    torch.backends.cuda.enable_mem_efficient_sdp(True)
+# if ENABLE_PYTORCH_ATTENTION:
+#     torch.backends.musa.enable_math_sdp(True)
+#     torch.backends.musa.enable_flash_sdp(True)
+#     torch.backends.musa.enable_mem_efficient_sdp(True)
 
 
 PRIORITIZE_FP16 = False  # TODO: remove and replace with something that shows exactly which dtype is faster than the other
 try:
     if is_nvidia() and PerformanceFeature.Fp16Accumulation in args.fast:
-        torch.backends.cuda.matmul.allow_fp16_accumulation = True
+        torch.backends.musa.matmul.allow_fp16_accumulation = True
         PRIORITIZE_FP16 = True  # TODO: limit to cards where it actually boosts performance
         logging.info("Enabled fp16 accumulation.")
 except:
@@ -298,7 +299,7 @@ except:
 
 try:
     if torch_version_numeric[0] == 2 and torch_version_numeric[1] >= 5:
-        torch.backends.cuda.allow_fp16_bf16_reduction_math_sdp(True)
+        torch.backends.musa.allow_fp16_bf16_reduction_math_sdp(True)
 except:
     logging.warning("Warning, could not set allow_fp16_bf16_reduction_math_sdp")
 
@@ -335,12 +336,12 @@ if DISABLE_SMART_MEMORY:
 
 def get_torch_device_name(device):
     if hasattr(device, 'type'):
-        if device.type == "cuda":
+        if device.type == "musa":
             try:
-                allocator_backend = torch.cuda.get_allocator_backend()
+                allocator_backend = torch.musa.get_allocator_backend()
             except:
                 allocator_backend = ""
-            return "{} {} : {}".format(device, torch.cuda.get_device_name(device), allocator_backend)
+            return "{} {} : {}".format(device, torch.musa.get_device_name(device), allocator_backend)
         else:
             return "{}".format(device.type)
     elif is_intel_xpu():
@@ -350,7 +351,7 @@ def get_torch_device_name(device):
     elif is_mlu():
         return "{} {}".format(device, torch.mlu.get_device_name(device))
     else:
-        return "CUDA {}: {}".format(device, torch.cuda.get_device_name(device))
+        return "MUSA {}: {}".format(device, torch.musa.get_device_name(device))
 
 try:
     logging.info("Device: {}".format(get_torch_device_name(get_torch_device())))
@@ -847,7 +848,7 @@ def vae_dtype(device=None, allowed_dtypes=[]):
 def get_autocast_device(dev):
     if hasattr(dev, 'type'):
         return dev.type
-    return "cuda"
+    return "musa"
 
 def supports_dtype(device, dtype): #TODO
     if dtype == torch.float32:
@@ -1027,12 +1028,12 @@ def get_free_memory(dev=None, torch_free_too=False):
             mem_free_torch = mem_reserved - mem_active
             mem_free_total = mem_free_mlu + mem_free_torch
         else:
-            stats = torch.cuda.memory_stats(dev)
+            stats = torch.musa.memory_stats(dev)
             mem_active = stats['active_bytes.all.current']
             mem_reserved = stats['reserved_bytes.all.current']
-            mem_free_cuda, _ = torch.cuda.mem_get_info(dev)
+            mem_free_musa, _ = torch.musa.mem_get_info(dev)
             mem_free_torch = mem_reserved - mem_active
-            mem_free_total = mem_free_cuda + mem_free_torch
+            mem_free_total = mem_free_musa + mem_free_torch
 
     if torch_free_too:
         return (mem_free_total, mem_free_torch)
@@ -1059,8 +1060,8 @@ def is_device_cpu(device):
 def is_device_mps(device):
     return is_device_type(device, 'mps')
 
-def is_device_cuda(device):
-    return is_device_type(device, 'cuda')
+def is_device_musa(device):
+    return is_device_type(device, 'musa')
 
 def is_directml_enabled():
     global directml_enabled
@@ -1101,7 +1102,7 @@ def should_use_fp16(device=None, model_params=0, prioritize_performance=True, ma
     if torch.version.hip:
         return True
 
-    props = torch.cuda.get_device_properties(device)
+    props = torch.musa.get_device_properties(device)
     if props.major >= 8:
         return True
 
@@ -1159,13 +1160,13 @@ def should_use_bf16(device=None, model_params=0, prioritize_performance=True, ma
         return True
 
     if is_amd():
-        arch = torch.cuda.get_device_properties(device).gcnArchName
+        arch = torch.musa.get_device_properties(device).gcnArchName
         if any((a in arch) for a in ["gfx1030", "gfx1031", "gfx1010", "gfx1011", "gfx1012", "gfx906", "gfx900", "gfx803"]):  # RDNA2 and older don't support bf16
             if manual_cast:
                 return True
             return False
 
-    props = torch.cuda.get_device_properties(device)
+    props = torch.musa.get_device_properties(device)
 
     if is_mlu():
         if props.major > 3:
@@ -1174,7 +1175,7 @@ def should_use_bf16(device=None, model_params=0, prioritize_performance=True, ma
     if props.major >= 8:
         return True
 
-    bf16_works = torch.cuda.is_bf16_supported()
+    bf16_works =True
 
     if bf16_works and manual_cast:
         free_model_memory = maximum_vram_for_weights(device)
@@ -1187,7 +1188,7 @@ def supports_fp8_compute(device=None):
     if not is_nvidia():
         return False
 
-    props = torch.cuda.get_device_properties(device)
+    props = torch.musa.get_device_properties(device)
     if props.major >= 9:
         return True
     if props.major < 8:
@@ -1212,9 +1213,9 @@ def soft_empty_cache(force=False):
         torch.xpu.empty_cache()
     elif is_ascend_npu():
         torch.npu.empty_cache()
-    elif torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.ipc_collect()
+    elif torch.musa.is_available():
+        torch.musa.empty_cache()
+        torch.musa.ipc_collect()
 
 def unload_all_models():
     free_memory(1e30, get_torch_device())

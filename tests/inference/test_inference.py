@@ -159,7 +159,7 @@ class TestInference:
                 ])
         yield
         p.kill()
-        torch.cuda.empty_cache()
+        torch.musa.empty_cache()
 
     def start_client(self, listen:str, port:int):
         # Start client
@@ -195,7 +195,7 @@ class TestInference:
         yield comfy_client, comfy_graph
         del comfy_client
         del comfy_graph
-        torch.cuda.empty_cache()
+        torch.musa.empty_cache()
 
     @fixture
     def client(self, _client_graph):

@@ -1,3 +1,6 @@
+import torch
+import torch_musa
+
 import comfy.options
 comfy.options.enable_args_parsing()
 
@@ -10,6 +13,7 @@ from app.logger import setup_logger
 import itertools
 import utils.extra_config
 import logging
+
 
 if __name__ == "__main__":
     #NOTE: These do not do anything on core ComfyUI which should already have no communication with the internet, they are for custom nodes.
@@ -108,11 +112,13 @@ import gc
 if os.name == "nt":
     logging.getLogger("xformers").addFilter(lambda record: 'A matching Triton is not available' not in record.getMessage())
 
+
+
 if __name__ == "__main__":
-    if args.cuda_device is not None:
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(args.cuda_device)
-        os.environ['HIP_VISIBLE_DEVICES'] = str(args.cuda_device)
-        logging.info("Set cuda device to: {}".format(args.cuda_device))
+    if args.musa_device is not None:
+        os.environ['MUSA_VISIBLE_DEVICES'] = str(args.musa_device)
+        os.environ['HIP_VISIBLE_DEVICES'] = str(args.musa_device)
+        logging.info("Set musa device to: {}".format(args.musa_device))
 
     if args.oneapi_device_selector is not None:
         os.environ['ONEAPI_DEVICE_SELECTOR'] = args.oneapi_device_selector
@@ -122,18 +128,19 @@ if __name__ == "__main__":
         if 'CUBLAS_WORKSPACE_CONFIG' not in os.environ:
             os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
 
-    import cuda_malloc
+    import musa_malloc
 
-if args.windows_standalone_build:
-    try:
-        from fix_torch import fix_pytorch_libomp
-        fix_pytorch_libomp()
-    except:
-        pass
+# if args.windows_standalone_build:
+#     try:
+#         from fix_torch import fix_pytorch_libomp
+#         fix_pytorch_libomp()
+#     except:
+#         pass
 
 import comfy.utils
 
 import execution
+
 import server
 from server import BinaryEventTypes
 import nodes
@@ -142,16 +149,16 @@ import comfyui_version
 import app.logger
 
 
-def cuda_malloc_warning():
+def musa_malloc_warning():
     device = comfy.model_management.get_torch_device()
     device_name = comfy.model_management.get_torch_device_name(device)
-    cuda_malloc_warning = False
-    if "cudaMallocAsync" in device_name:
-        for b in cuda_malloc.blacklist:
+    musa_malloc_warning = False
+    if "musaMallocAsync" in device_name:
+        for b in musa_malloc.blacklist:
             if b in device_name:
-                cuda_malloc_warning = True
-        if cuda_malloc_warning:
-            logging.warning("\nWARNING: this card most likely does not support cuda-malloc, if you get \"CUDA error\" please run ComfyUI with: --disable-cuda-malloc\n")
+                musa_malloc_warning = True
+        if musa_malloc_warning:
+            logging.warning("\nWARNING: this card most likely does not support musa-malloc, if you get \"MUSA error\" please run ComfyUI with: --disable-musa-malloc\n")
 
 
 def prompt_worker(q, server_instance):
@@ -263,7 +270,7 @@ def start_comfyui(asyncio_loop=None):
 
     nodes.init_extra_nodes(init_custom_nodes=not args.disable_all_custom_nodes)
 
-    cuda_malloc_warning()
+    musa_malloc_warning()
 
     prompt_server.add_routes()
     hijack_progress(prompt_server)

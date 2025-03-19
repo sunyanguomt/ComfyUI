@@ -68,7 +68,7 @@ class SimpleImageConcat(AbstractLowScaleModel):
 
 
 class ImageConcatWithNoiseAugmentation(AbstractLowScaleModel):
-    def __init__(self, noise_schedule_config, max_noise_level=1000, to_cuda=False):
+    def __init__(self, noise_schedule_config, max_noise_level=1000, to_musa=False):
         super().__init__(noise_schedule_config=noise_schedule_config)
         self.max_noise_level = max_noise_level
 

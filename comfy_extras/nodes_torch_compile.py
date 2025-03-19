@@ -4,7 +4,7 @@ class TorchCompileModel:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": { "model": ("MODEL",),
-                             "backend": (["inductor", "cudagraphs"],),
+                             "backend": (["inductor", "musagraphs"],),
                               }}
     RETURN_TYPES = ("MODEL",)
     FUNCTION = "patch"

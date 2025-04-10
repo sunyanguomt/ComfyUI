@@ -1,6 +1,5 @@
 import torch
 import torch_musa
-torch.backends.mudnn.allow_tf32 = True
 import comfy.options
 comfy.options.enable_args_parsing()
 

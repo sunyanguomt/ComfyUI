@@ -266,7 +266,7 @@ class BaseModel(torch.nn.Module):
         m, u = self.diffusion_model.load_state_dict(to_load, strict=False)
         if dtype is torch.float16 or dtype is torch.bfloat16:
             self.diffusion_model = self.diffusion_model.to(dtype)
-
+        self.diffusion_model = self.diffusion_model.to(memory_format=torch.channels_last)
         if len(m) > 0:
             logging.warning("unet missing: {}".format(m))
 

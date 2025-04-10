@@ -255,7 +255,7 @@ class BaseModel(torch.nn.Module):
 
         return out
 
-    def load_model_weights(self, sd, dtype=torch.float32, unet_prefix=""):
+    def load_model_weights(self, sd, unet_prefix="", dtype=torch.float32):
         to_load = {}
         keys = list(sd.keys())
         for k in keys:

@@ -255,7 +255,7 @@ class BaseModel(torch.nn.Module):
 
         return out
 
-    def load_model_weights(self, sd, unet_prefix=""):
+    def load_model_weights(self, sd, dtype=torch.float32, unet_prefix=""):
         to_load = {}
         keys = list(sd.keys())
         for k in keys:
@@ -264,6 +264,9 @@ class BaseModel(torch.nn.Module):
 
         to_load = self.model_config.process_unet_state_dict(to_load)
         m, u = self.diffusion_model.load_state_dict(to_load, strict=False)
+        if dtype is torch.float16 or dtype is torch.bfloat16:
+            self.diffusion_model = self.diffusion_model.to(dtype)
+
         if len(m) > 0:
             logging.warning("unet missing: {}".format(m))
 

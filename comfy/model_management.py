@@ -103,6 +103,13 @@ try:
 except:
     mlu_available = False
 
+try:
+    import torch_musa  # noqa: F401
+    _ = torch.musa.device_count()
+    musa_available = torch.musa.is_available()
+except:
+    musa_available = False
+
 if args.cpu:
     cpu_state = CPUState.CPU
 
@@ -124,6 +131,12 @@ def is_mlu():
     global mlu_available
     if mlu_available:
         return True
+    return False
+
+def is_musa():
+    # global musa_available
+    # if musa_available:
+    #     return True
     return False
 
 def get_torch_device():
@@ -945,6 +958,8 @@ def xformers_enabled():
         return False
     if is_mlu():
         return False
+    if is_musa():
+        return False
     if directml_enabled:
         return False
     return XFORMERS_IS_AVAILABLE
@@ -977,6 +992,8 @@ def pytorch_attention_flash_attention():
         if is_ascend_npu():
             return True
         if is_mlu():
+            return True
+        if is_musa():
             return True
         if is_amd():
             return True #if you have pytorch attention enabled on AMD it probably supports at least mem efficient attention
@@ -1098,6 +1115,9 @@ def should_use_fp16(device=None, model_params=0, prioritize_performance=True, ma
 
     if is_mlu():
         return True
+    
+    if is_musa():
+        return True
 
     if torch.version.hip:
         return True
@@ -1157,6 +1177,9 @@ def should_use_bf16(device=None, model_params=0, prioritize_performance=True, ma
         return True
 
     if is_ascend_npu():
+        return True
+    
+    if is_musa():
         return True
 
     if is_amd():
